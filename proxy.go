@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+
+	"github.com/stathat/consistent"
 )
 
 type Node struct {
@@ -29,5 +31,12 @@ func main() {
 	if err := json.NewDecoder(file).Decode(&c); err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("%+v", c)
+
+	cons := consistent.New()
+	cons.NumberOfReplicas = 1
+	for _, node := range c.Nodes {
+		name := fmt.Sprintf("%s:%d", node.Host, node.Port)
+		fmt.Printf("add %s\n", name)
+		cons.Add(name)
+	}
 }

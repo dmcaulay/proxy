@@ -1,0 +1,12 @@
+{
+  "Nodes": [
+    {"Host": "127.0.0.1", "Port": 8127, "Adminport": 8128},
+    {"Host": "127.0.0.1", "Port": 8129, "Adminport": 8130},
+    {"Host": "127.0.0.1", "Port": 8131, "Adminport": 8132}
+  ],
+  "UdpVersion": "udp4",
+  "Host":  "0.0.0.0",
+  "Port": 8125,
+  "CheckInterval": 1000,
+  "CacheSize": 10000
+}

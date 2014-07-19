@@ -1,7 +1,31 @@
 package main
 
-import "fmt"
+import (
+	"encoding/json"
+	"log"
+	"os"
+)
+
+type Config struct {
+	Nodes         []Node
+	UdpVersion    string
+	Host          string
+	Port          int
+	CheckInterval int
+	CacheSize     int
+}
+
+type Node struct {
+	Host      string
+	Port      int
+	AdminPort int
+}
 
 func main() {
-	fmt.Printf("Hello, proxy with easy install.\n")
+	file, _ := os.Open("config.json")
+
+	var c Config
+	if err := json.NewDecoder(file).Decode(&c); err != nil {
+		log.Fatal(err)
+	}
 }

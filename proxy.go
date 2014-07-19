@@ -2,9 +2,16 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"os"
 )
+
+type Node struct {
+	Host      string
+	Port      int
+	AdminPort int
+}
 
 type Config struct {
 	Nodes         []Node
@@ -15,12 +22,6 @@ type Config struct {
 	CacheSize     int
 }
 
-type Node struct {
-	Host      string
-	Port      int
-	AdminPort int
-}
-
 func main() {
 	file, _ := os.Open("config.json")
 
@@ -28,4 +29,5 @@ func main() {
 	if err := json.NewDecoder(file).Decode(&c); err != nil {
 		log.Fatal(err)
 	}
+	fmt.Printf("%+v", c)
 }

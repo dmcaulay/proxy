@@ -25,6 +25,11 @@ type config struct {
 	CheckInterval int
 }
 
+type packet struct {
+	Length int
+	Buffer *bytes.Buffer
+}
+
 type connMap map[string]*net.UDPConn
 
 func makeAddr(port int, host string) net.UDPAddr {
@@ -71,44 +76,47 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		buffer := bytes.NewBuffer(b[:])
 
-		var pos int
-		for {
-			// read the next command
-			line, err := buffer.ReadBytes('\n')
-			if err != nil {
-				log.Fatal(err)
-			}
+		go handlePacket(packet{Length: n, Buffer: bytes.NewBuffer(b[:])}, clientMap, cons)
+	}
+}
 
-			// read the key
-			metric, err := bytes.NewBuffer(line[:]).ReadBytes(':')
-			if err != nil {
-				log.Fatal(err)
-			}
-			key := string(metric[:])
+func handlePacket(p packet, clientMap connMap, cons *consistent.Consistent) {
+	var pos int
+	for {
+		// read the next command
+		line, err := p.Buffer.ReadBytes('\n')
+		if err != nil {
+			log.Fatal(err)
+		}
 
-			// get the client
-			name, err := cons.Get(key)
-			if err != nil {
-				log.Fatal(err)
-			}
-			client, found := clientMap[name]
-			if !found {
-				log.Fatal("unknown client for key", key)
-			}
+		// read the key
+		metric, err := bytes.NewBuffer(line[:]).ReadBytes(':')
+		if err != nil {
+			log.Fatal(err)
+		}
+		key := string(metric[:])
 
-			// write to the statsd server
-			_, err = client.Write(line[:])
-			if err != nil {
-				log.Fatal(err)
-			}
+		// get the client
+		name, err := cons.Get(key)
+		if err != nil {
+			log.Fatal(err)
+		}
+		client, found := clientMap[name]
+		if !found {
+			log.Fatal("unknown client for key", key)
+		}
 
-			// check position
-			pos += len(line)
-			if pos == n {
-				break
-			}
+		// write to the statsd server
+		_, err = client.Write(line[:])
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		// check position
+		pos += len(line)
+		if pos == p.Length {
+			break
 		}
 	}
 }

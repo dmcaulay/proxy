@@ -27,7 +27,7 @@ type config struct {
 
 type packet struct {
 	Length int
-	Buffer *bytes.Buffer
+	Buffer []byte
 }
 
 type connMap map[string]*net.UDPConn
@@ -70,32 +70,34 @@ func main() {
 		log.Fatal(err)
 	}
 
-	var b [1024]byte
 	for {
-		n, _, err := conn.ReadFromUDP(b[:])
+		var b []byte
+		n, _, err := conn.ReadFromUDP(b)
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		go handlePacket(packet{Length: n, Buffer: bytes.NewBuffer(b[:])}, clientMap, cons)
+		go handlePacket(packet{Length: n, Buffer: b}, clientMap, cons)
 	}
 }
 
 func handlePacket(p packet, clientMap connMap, cons *consistent.Consistent) {
+	buffer := bytes.NewBuffer(p.Buffer)
 	var pos int
+
 	for {
 		// read the next command
-		line, err := p.Buffer.ReadBytes('\n')
+		line, err := buffer.ReadBytes('\n')
 		if err != nil {
 			log.Fatal(err)
 		}
 
 		// read the key
-		metric, err := bytes.NewBuffer(line[:]).ReadBytes(':')
+		metric, err := bytes.NewBuffer(line).ReadBytes(':')
 		if err != nil {
 			log.Fatal(err)
 		}
-		key := string(metric[:])
+		key := string(metric)
 
 		// get the client
 		name, err := cons.Get(key)
@@ -108,7 +110,7 @@ func handlePacket(p packet, clientMap connMap, cons *consistent.Consistent) {
 		}
 
 		// write to the statsd server
-		_, err = client.Write(line[:])
+		_, err = client.Write(line)
 		if err != nil {
 			log.Fatal(err)
 		}

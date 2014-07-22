@@ -17,6 +17,7 @@ type node struct {
 	Host      string
 	Port      int
 	AdminPort int
+	Version   string
 	Conn      *net.UDPConn
 	name      string
 }
@@ -26,6 +27,19 @@ func (n *node) Name() string {
 		n.name = fmt.Sprintf("%s:%d", n.Host, n.Port)
 	}
 	return n.name
+}
+
+func (n *node) Add() {
+	cons.Add(n.Name())
+	conn, err := makeConn(n.Version, n.Port, n.Host)
+	if err == nil {
+		n.Conn = conn
+	}
+}
+
+func (n *node) Remove() {
+	n.Conn = nil
+	cons.Remove(n.Name())
 }
 
 type config struct {
@@ -41,7 +55,8 @@ type packet struct {
 	Buffer []byte
 }
 
-type connMap map[string]node
+var clientMap map[string]node = make(map[string]node)
+var cons = consistent.New()
 
 func makeAddr(port int, host string) net.UDPAddr {
 	return net.UDPAddr{Port: port, IP: net.ParseIP(host)}
@@ -50,19 +65,6 @@ func makeAddr(port int, host string) net.UDPAddr {
 func makeConn(version string, port int, host string) (*net.UDPConn, error) {
 	addr := makeAddr(port, host)
 	return net.DialUDP(version, nil, &addr)
-}
-
-func addNode(version string, n node, cons *consistent.Consistent) {
-	cons.Add(n.Name())
-	conn, err := makeConn(version, n.Port, n.Host)
-	if err == nil {
-		n.Conn = conn
-	}
-}
-
-func removeNode(n node, cons *consistent.Consistent) {
-	n.Conn = nil
-	cons.Remove(n.Name())
 }
 
 func main() {
@@ -74,16 +76,15 @@ func main() {
 	}
 
 	// setup clients and hash ring
-	var clientMap connMap = make(connMap)
-	cons := consistent.New()
 	cons.NumberOfReplicas = 1
 	for _, n := range c.Nodes {
 		fmt.Printf("add %s\n", n.Name())
+		n.Version = c.UdpVersion
 		clientMap[n.Name()] = n
-		addNode(c.UdpVersion, n, cons)
+		n.Add()
 	}
 
-	go healthCheck(c.CheckInterval, c.UdpVersion, clientMap, cons)
+	go healthCheck(c.CheckInterval)
 
 	// start proxy server
 	addr := makeAddr(c.Port, c.Host)
@@ -101,11 +102,11 @@ func main() {
 			log.Fatal(err)
 		}
 
-		go handlePacket(packet{Length: n, Buffer: b}, clientMap, cons)
+		go handlePacket(packet{Length: n, Buffer: b})
 	}
 }
 
-func healthCheck(interval int, version string, clientMap connMap, cons *consistent.Consistent) {
+func healthCheck(interval int) {
 	healthMessage := []byte("health\r\n")
 	up := []byte("up")
 	ticker := time.NewTicker(time.Duration(interval) * time.Millisecond)
@@ -114,17 +115,17 @@ func healthCheck(interval int, version string, clientMap connMap, cons *consiste
 		<-ticker.C
 		for _, n := range clientMap {
 			// connect to statsd admin port
-			conn, err := makeConn(version, n.AdminPort, n.Host)
+			conn, err := makeConn(n.Version, n.AdminPort, n.Host)
 			defer conn.Close()
 			if err != nil {
-				removeNode(n, cons)
+				n.Remove()
 				continue
 			}
 
 			// write health message
 			_, err = conn.Write(healthMessage)
 			if err != nil {
-				removeNode(n, cons)
+				n.Remove()
 				continue
 			}
 
@@ -132,23 +133,23 @@ func healthCheck(interval int, version string, clientMap connMap, cons *consiste
 			var b []byte
 			_, _, err = conn.ReadFromUDP(b)
 			if err != nil {
-				removeNode(n, cons)
+				n.Remove()
 				continue
 			}
 
 			// check to see if the node is up
 			if bytes.Contains(b, up) {
 				if n.Conn == nil {
-					addNode(version, n, cons)
+					n.Add()
 				}
 			} else {
-				removeNode(n, cons)
+				n.Remove()
 			}
 		}
 	}
 }
 
-func handlePacket(p packet, clientMap connMap, cons *consistent.Consistent) {
+func handlePacket(p packet) {
 	buffer := bytes.NewBuffer(p.Buffer)
 	var pos int
 
@@ -176,14 +177,15 @@ func handlePacket(p packet, clientMap connMap, cons *consistent.Consistent) {
 			log.Fatal("unknown client for key", key)
 		}
 
-		if n.Conn == nil {
-			removeNode(n, cons)
+		conn := n.Conn
+		if conn == nil {
+			n.Remove()
 		}
 
 		// write to the statsd server
-		_, err = n.Conn.Write(line)
+		_, err = conn.Write(line)
 		if err != nil {
-			removeNode(n, cons)
+			n.Remove()
 		}
 
 		// check position

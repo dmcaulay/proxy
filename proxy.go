@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"os"
@@ -154,12 +155,18 @@ func handlePacket(p packet, clientMap connMap, cons *consistent.Consistent) {
 	for {
 		// read the next command
 		line, err := buffer.ReadBytes('\n')
+		if err == io.EOF {
+			break
+		}
 		if err != nil {
 			log.Fatal(err)
 		}
 
 		// read the key
 		metric, err := bytes.NewBuffer(line).ReadBytes(':')
+		if err == io.EOF {
+			break
+		}
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -171,8 +178,12 @@ func handlePacket(p packet, clientMap connMap, cons *consistent.Consistent) {
 			log.Fatal(err)
 		}
 		n, found := clientMap[name]
-		if !found || n.Conn == nil {
+		if !found {
 			log.Fatal("unknown client for key", key)
+		}
+
+		if n.Conn == nil {
+			removeNode(n, cons)
 		}
 
 		// write to the statsd server

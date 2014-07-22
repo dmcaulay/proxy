@@ -181,12 +181,11 @@ func handlePacket(p packet) {
 			log.Fatal("unknown client for key", key)
 		}
 
+		// write to the statsd server
 		conn := n.Conn
 		if conn == nil {
 			n.Remove()
 		}
-
-		// write to the statsd server
 		_, err = conn.Write(line)
 		if err != nil {
 			n.Remove()

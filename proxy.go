@@ -155,19 +155,13 @@ func handlePacket(p packet, clientMap connMap, cons *consistent.Consistent) {
 	for {
 		// read the next command
 		line, err := buffer.ReadBytes('\n')
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
+		if err != nil && err != io.EOF {
 			log.Fatal(err)
 		}
 
 		// read the key
 		metric, err := bytes.NewBuffer(line).ReadBytes(':')
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
+		if err != nil && err != io.EOF {
 			log.Fatal(err)
 		}
 		key := string(metric)

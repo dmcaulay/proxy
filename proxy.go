@@ -51,43 +51,6 @@ func makeConn(version string, port int, host string) (*net.UDPConn, error) {
 	return net.DialUDP(version, nil, &addr)
 }
 
-func main() {
-	file, _ := os.Open("config.json")
-
-	var c config
-	if err := json.NewDecoder(file).Decode(&c); err != nil {
-		log.Fatal(err)
-	}
-
-	var clientMap connMap = make(connMap)
-	cons := consistent.New()
-	cons.NumberOfReplicas = 1
-	for _, n := range c.Nodes {
-		fmt.Printf("add %s\n", n.Name())
-		clientMap[n.Name()] = n
-		addNode(c.UdpVersion, n, cons)
-	}
-
-	go healthCheck(c.CheckInterval, c.UdpVersion, clientMap, cons)
-
-	addr := makeAddr(c.Port, c.Host)
-	conn, err := net.ListenUDP(c.UdpVersion, &addr)
-	defer conn.Close()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	for {
-		var b []byte
-		n, _, err := conn.ReadFromUDP(b)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		go handlePacket(packet{Length: n, Buffer: b}, clientMap, cons)
-	}
-}
-
 func addNode(version string, n node, cons *consistent.Consistent) {
 	cons.Add(n.Name())
 	conn, err := makeConn(version, n.Port, n.Host)
@@ -99,6 +62,46 @@ func addNode(version string, n node, cons *consistent.Consistent) {
 func removeNode(n node, cons *consistent.Consistent) {
 	n.Conn = nil
 	cons.Remove(n.Name())
+}
+
+func main() {
+	// read config
+	file, _ := os.Open("config.json")
+	var c config
+	if err := json.NewDecoder(file).Decode(&c); err != nil {
+		log.Fatal(err)
+	}
+
+	// setup clients and hash ring
+	var clientMap connMap = make(connMap)
+	cons := consistent.New()
+	cons.NumberOfReplicas = 1
+	for _, n := range c.Nodes {
+		fmt.Printf("add %s\n", n.Name())
+		clientMap[n.Name()] = n
+		addNode(c.UdpVersion, n, cons)
+	}
+
+	go healthCheck(c.CheckInterval, c.UdpVersion, clientMap, cons)
+
+	// start proxy server
+	addr := makeAddr(c.Port, c.Host)
+	conn, err := net.ListenUDP(c.UdpVersion, &addr)
+	defer conn.Close()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// read packets
+	for {
+		var b []byte
+		n, _, err := conn.ReadFromUDP(b)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		go handlePacket(packet{Length: n, Buffer: b}, clientMap, cons)
+	}
 }
 
 func healthCheck(interval int, version string, clientMap connMap, cons *consistent.Consistent) {

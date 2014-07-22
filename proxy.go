@@ -30,9 +30,9 @@ func (n *node) Name() string {
 }
 
 func (n *node) Add() {
-	cons.Add(n.Name())
 	conn, err := makeConn(n.Version, n.Port, n.Host)
 	if err == nil {
+		cons.Add(n.Name())
 		n.Conn = conn
 	}
 }

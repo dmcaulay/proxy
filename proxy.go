@@ -102,6 +102,10 @@ func main() {
 			log.Fatal(err)
 		}
 
+		if n == 0 {
+			continue
+		}
+
 		go handlePacket(packet{Length: n, Buffer: b})
 	}
 }

@@ -13,6 +13,17 @@ import (
 	"github.com/stathat/consistent"
 )
 
+var clientMap map[string]node = make(map[string]node)
+var cons = consistent.New()
+
+type config struct {
+	Nodes         []node
+	Host          string
+	Port          int
+	UdpVersion    string
+	CheckInterval int
+}
+
 type node struct {
 	Host      string
 	Port      int
@@ -42,21 +53,10 @@ func (n *node) Remove() {
 	cons.Remove(n.Name())
 }
 
-type config struct {
-	Nodes         []node
-	Host          string
-	Port          int
-	UdpVersion    string
-	CheckInterval int
-}
-
 type packet struct {
 	Length int
 	Buffer []byte
 }
-
-var clientMap map[string]node = make(map[string]node)
-var cons = consistent.New()
 
 func makeAddr(port int, host string) net.UDPAddr {
 	return net.UDPAddr{Port: port, IP: net.ParseIP(host)}
@@ -67,26 +67,26 @@ func makeConn(version string, port int, host string) (*net.UDPConn, error) {
 	return net.DialUDP(version, nil, &addr)
 }
 
-func main() {
-	// read config
+func readConfig() config {
 	file, _ := os.Open("config.json")
 	var c config
 	if err := json.NewDecoder(file).Decode(&c); err != nil {
 		log.Fatal(err)
 	}
+	return c
+}
 
+func setup(c config) {
 	// setup clients and hash ring
 	cons.NumberOfReplicas = 1
 	for _, n := range c.Nodes {
-		fmt.Printf("add %s\n", n.Name())
 		n.Version = c.UdpVersion
 		clientMap[n.Name()] = n
 		n.Add()
 	}
+}
 
-	go healthCheck(c.CheckInterval)
-
-	// start proxy server
+func startServer(c config) {
 	addr := makeAddr(c.Port, c.Host)
 	conn, err := net.ListenUDP(c.UdpVersion, &addr)
 	defer conn.Close()
@@ -107,49 +107,6 @@ func main() {
 		}
 
 		go handlePacket(packet{Length: n, Buffer: b})
-	}
-}
-
-func healthCheck(interval int) {
-	healthMessage := []byte("health\r\n")
-	up := []byte("up")
-	ticker := time.NewTicker(time.Duration(interval) * time.Millisecond)
-
-	for {
-		<-ticker.C
-		for _, n := range clientMap {
-			// connect to statsd admin port
-			conn, err := makeConn(n.Version, n.AdminPort, n.Host)
-			defer conn.Close()
-			if err != nil {
-				n.Remove()
-				continue
-			}
-
-			// write health message
-			_, err = conn.Write(healthMessage)
-			if err != nil {
-				n.Remove()
-				continue
-			}
-
-			// read response
-			var b []byte
-			_, _, err = conn.ReadFromUDP(b)
-			if err != nil {
-				n.Remove()
-				continue
-			}
-
-			// check to see if the node is up
-			if bytes.Contains(b, up) {
-				if n.Conn == nil {
-					n.Add()
-				}
-			} else {
-				n.Remove()
-			}
-		}
 	}
 }
 
@@ -197,4 +154,57 @@ func handlePacket(p packet) {
 			break
 		}
 	}
+}
+
+func healthCheck(interval int) {
+	healthMessage := []byte("health\r\n")
+	up := []byte("up")
+	ticker := time.NewTicker(time.Duration(interval) * time.Millisecond)
+
+	for {
+		<-ticker.C
+		for _, n := range clientMap {
+			// connect to statsd admin port
+			conn, err := makeConn(n.Version, n.AdminPort, n.Host)
+			defer conn.Close()
+			if err != nil {
+				n.Remove()
+				continue
+			}
+
+			// write health message
+			_, err = conn.Write(healthMessage)
+			if err != nil {
+				n.Remove()
+				continue
+			}
+
+			// read response
+			var b []byte
+			_, _, err = conn.ReadFromUDP(b)
+			if err != nil {
+				n.Remove()
+				continue
+			}
+
+			// check to see if the node is up
+			if bytes.Contains(b, up) {
+				if n.Conn == nil {
+					n.Add()
+				}
+			} else {
+				n.Remove()
+			}
+		}
+	}
+}
+
+func main() {
+	c := readConfig()
+
+	setup(c)
+
+	go healthCheck(c.CheckInterval)
+
+	startServer(c)
 }

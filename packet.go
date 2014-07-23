@@ -10,10 +10,9 @@ import (
 type packet struct {
 	Length int
 	Buffer []byte
-	Conn   *net.UDPConn
 }
 
-func (p *packet) handle() {
+func (p *packet) handle(send func([]byte, *net.UDPAddr) error) {
 	buffer := bytes.NewBuffer(p.Buffer[:p.Length])
 	var pos int
 
@@ -48,7 +47,7 @@ func (p *packet) handle() {
 		}
 
 		// write to the statsd server
-		_, err = p.Conn.WriteToUDP(line, &n.Addr)
+		err = send(line, &n.Addr)
 		if err != nil {
 			n.Remove()
 			continue

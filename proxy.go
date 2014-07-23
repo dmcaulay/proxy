@@ -48,8 +48,11 @@ func readPackets(conn *net.UDPConn) error {
 		if err != nil {
 			return err
 		}
-		p := packet{Length: n, Buffer: b, Conn: conn}
-		go p.handle()
+		p := packet{Length: n, Buffer: b}
+		go p.handle(func(buf []byte, addr *net.UDPAddr) error {
+			_, err = conn.WriteToUDP(buf, addr)
+			return err
+		})
 	}
 }
 

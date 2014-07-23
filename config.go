@@ -14,7 +14,7 @@ type config struct {
 }
 
 func (c *config) read(env string) error {
-	file, err := os.Open(env + ".json")
+	file, err := os.Open("config/" + env + ".json")
 	if err != nil {
 		return err
 	}

@@ -4,6 +4,7 @@ import (
 	"flag"
 	"log"
 	"net"
+	"runtime"
 
 	"github.com/stathat/consistent"
 )
@@ -55,6 +56,8 @@ func readPackets(conn *net.UDPConn) error {
 }
 
 func main() {
+	runtime.GOMAXPROCS(runtime.NumCPU())
+
 	env := flag.String("e", "development", "the program environment")
 	flag.Parse()
 

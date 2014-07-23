@@ -15,7 +15,6 @@ import (
 
 var clientMap map[string]*node = make(map[string]*node)
 var cons = consistent.New()
-var conn *net.UDPConn
 
 type config struct {
 	Nodes         []node

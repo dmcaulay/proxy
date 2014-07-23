@@ -43,11 +43,6 @@ func startServer(version string, port int, host string) error {
 func readPackets(conn *net.UDPConn) error {
 	defer conn.Close()
 
-	send := func(buf []byte, addr *net.UDPAddr) error {
-		_, err := conn.WriteToUDP(buf, addr)
-		return err
-	}
-
 	for {
 		b := make([]byte, 1024)
 		n, _, err := conn.ReadFromUDP(b)
@@ -55,7 +50,7 @@ func readPackets(conn *net.UDPConn) error {
 			return err
 		}
 		p := packet{Length: n, Buffer: b}
-		go p.handle(send)
+		go p.handle(conn)
 	}
 }
 

@@ -15,7 +15,7 @@ func setup_test() {
 		return
 	}
 	initialized = true
-	readConfig("test", &c)
+	c.read("test")
 	setup(c)
 	makeServers()
 	go startServer(c)

@@ -16,8 +16,8 @@ func setup_test() {
 	}
 	initialized = true
 	setup(c)
-	go startServer(c)
 	makeServers(c)
+	go startServer(c)
 }
 
 func makeServers(c config) {

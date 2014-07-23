@@ -40,7 +40,7 @@ func serverConn(t *testing.T) (net.PacketConn, net.UDPAddr) {
 	return conn, addr
 }
 
-func TestConsistent(t *testing.T) {
+func TestSetup(t *testing.T) {
 	setup_test()
 	name, err := cons.Get("statsd.metric.test")
 	if err != nil {

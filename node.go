@@ -9,7 +9,6 @@ type node struct {
 	Host      string
 	Port      int
 	AdminPort int
-	Version   string
 	Addr      net.UDPAddr
 	name      string
 }

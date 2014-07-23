@@ -24,7 +24,6 @@ func setup(c config) {
 	cons.NumberOfReplicas = 1
 	for i := 0; i < len(c.Nodes); i++ {
 		n := &c.Nodes[i]
-		n.Version = c.UdpVersion
 		n.Addr = makeAddr(n.Port, n.Host)
 		n.Add()
 		clientMap[n.Name()] = n

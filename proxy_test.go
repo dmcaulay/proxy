@@ -16,11 +16,11 @@ func setup_test() {
 	}
 	initialized = true
 	setup(c)
-	makeServers(c)
+	makeServers()
 	go startServer(c)
 }
 
-func makeServers(c config) {
+func makeServers() {
 	for _, n := range c.Nodes {
 		conn, err := makeConn(c.UdpVersion, n.Port, n.Host)
 		if err != nil {

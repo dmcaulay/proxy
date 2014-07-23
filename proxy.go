@@ -42,7 +42,6 @@ func (n *node) Name() string {
 }
 
 func (n *node) Add() {
-	n.Addr = makeAddr(n.Port, n.Host)
 	cons.Add(n.Name())
 }
 
@@ -77,9 +76,11 @@ func setup(c config) {
 	// setup clients and hash ring
 	cons.NumberOfReplicas = 1
 	for i := 0; i < len(c.Nodes); i++ {
-		c.Nodes[i].Version = c.UdpVersion
-		c.Nodes[i].Add()
-		clientMap[c.Nodes[i].Name()] = &c.Nodes[i]
+		n := &c.Nodes[i]
+		n.Version = c.UdpVersion
+		n.Addr = makeAddr(n.Port, n.Host)
+		clientMap[n.Name()] = n
+		n.Add()
 	}
 }
 

@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func healthCheck(interval int, version string) {
+func healthcheck(interval int, version string) {
 	healthMessage := []byte("health\r\n")
 	up := []byte("up")
 	ticker := time.NewTicker(time.Duration(interval) * time.Millisecond)

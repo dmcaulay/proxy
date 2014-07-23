@@ -60,7 +60,7 @@ func main() {
 	}
 
 	setup(c)
-	go healthCheck(c.CheckInterval, c.UdpVersion)
+	go healthcheck(c.CheckInterval, c.UdpVersion)
 
 	log.Fatal(startServer(c))
 }

@@ -13,8 +13,9 @@ import (
 	"github.com/stathat/consistent"
 )
 
-var clientMap map[string]node = make(map[string]node)
+var clientMap map[string]*node = make(map[string]*node)
 var cons = consistent.New()
+var conn *net.UDPConn
 
 type config struct {
 	Nodes         []node
@@ -29,7 +30,7 @@ type node struct {
 	Port      int
 	AdminPort int
 	Version   string
-	Conn      *net.UDPConn
+	Addr      net.UDPAddr
 	name      string
 }
 
@@ -41,15 +42,11 @@ func (n *node) Name() string {
 }
 
 func (n *node) Add() {
-	conn, err := makeConn(n.Version, n.Port, n.Host)
-	if err == nil {
-		cons.Add(n.Name())
-		n.Conn = conn
-	}
+	n.Addr = makeAddr(n.Port, n.Host)
+	cons.Add(n.Name())
 }
 
 func (n *node) Remove() {
-	n.Conn = nil
 	cons.Remove(n.Name())
 }
 
@@ -64,7 +61,7 @@ func makeAddr(port int, host string) net.UDPAddr {
 
 func makeConn(version string, port int, host string) (*net.UDPConn, error) {
 	addr := makeAddr(port, host)
-	return net.DialUDP(version, nil, &addr)
+	return net.ListenUDP(version, &addr)
 }
 
 func readConfig() config {
@@ -79,39 +76,34 @@ func readConfig() config {
 func setup(c config) {
 	// setup clients and hash ring
 	cons.NumberOfReplicas = 1
-	for _, n := range c.Nodes {
-		n.Version = c.UdpVersion
-		clientMap[n.Name()] = n
-		n.Add()
+	for i := 0; i < len(c.Nodes); i++ {
+		c.Nodes[i].Version = c.UdpVersion
+		c.Nodes[i].Add()
+		clientMap[c.Nodes[i].Name()] = &c.Nodes[i]
 	}
 }
 
 func startServer(c config) {
-	addr := makeAddr(c.Port, c.Host)
-	conn, err := net.ListenUDP(c.UdpVersion, &addr)
-	defer conn.Close()
+	udpConn, err := makeConn(c.UdpVersion, c.Port, c.Host)
+	defer udpConn.Close()
 	if err != nil {
 		log.Fatal(err)
 	}
+	conn = udpConn
 
 	// read packets
 	for {
-		var b []byte
+		b := make([]byte, 1024)
 		n, _, err := conn.ReadFromUDP(b)
 		if err != nil {
 			log.Fatal(err)
 		}
-
-		if n == 0 {
-			continue
-		}
-
 		go handlePacket(packet{Length: n, Buffer: b})
 	}
 }
 
 func handlePacket(p packet) {
-	buffer := bytes.NewBuffer(p.Buffer)
+	buffer := bytes.NewBuffer(p.Buffer[:p.Length])
 	var pos int
 
 	for {
@@ -120,13 +112,19 @@ func handlePacket(p packet) {
 		if err != nil && err != io.EOF {
 			log.Fatal(err)
 		}
+		if len(line) == 0 {
+			break
+		}
+		if err != io.EOF {
+			line = line[:len(line)-1]
+		}
 
 		// read the key
 		metric, err := bytes.NewBuffer(line).ReadBytes(':')
 		if err != nil && err != io.EOF {
 			log.Fatal(err)
 		}
-		key := string(metric)
+		key := string(metric[:len(metric)-1])
 
 		// get the client
 		name, err := cons.Get(key)
@@ -139,13 +137,10 @@ func handlePacket(p packet) {
 		}
 
 		// write to the statsd server
-		conn := n.Conn
-		if conn == nil {
-			n.Remove()
-		}
-		_, err = conn.Write(line)
+		_, err = conn.WriteToUDP(line, &n.Addr)
 		if err != nil {
 			n.Remove()
+			continue
 		}
 
 		// check position
@@ -189,9 +184,7 @@ func healthCheck(interval int) {
 
 			// check to see if the node is up
 			if bytes.Contains(b, up) {
-				if n.Conn == nil {
-					n.Add()
-				}
+				n.Add()
 			} else {
 				n.Remove()
 			}

@@ -191,10 +191,7 @@ func healthCheck(interval int) {
 
 func main() {
 	c := readConfig()
-
 	setup(c)
-
 	go healthCheck(c.CheckInterval)
-
 	startServer(c)
 }

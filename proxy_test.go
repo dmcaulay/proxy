@@ -35,7 +35,7 @@ func serverConn(t *testing.T) (net.PacketConn, net.UDPAddr) {
 	if err != nil {
 		t.Error("should be able to create a connection")
 	}
-	addr := makeAddr(c.Port, c.Host)
+	addr := makeAddr(c.Port, "127.0.0.1")
 	return conn, addr
 }
 

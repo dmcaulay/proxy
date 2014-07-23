@@ -30,22 +30,22 @@ func setup(c config) {
 	}
 }
 
-func startServer(c config) {
+func startServer(c config) error {
 	conn, err := makeConn(c.UdpVersion, c.Port, c.Host)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
-	readPackets(conn)
+	return readPackets(conn)
 }
 
-func readPackets(conn *net.UDPConn) {
+func readPackets(conn *net.UDPConn) error {
 	defer conn.Close()
 	for {
 		b := make([]byte, 1024)
 		n, _, err := conn.ReadFromUDP(b)
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 		p := packet{Length: n, Buffer: b, Conn: conn}
 		go p.handle()
@@ -54,8 +54,13 @@ func readPackets(conn *net.UDPConn) {
 
 func main() {
 	var c config
-	c.read("production")
+	err := c.read("production")
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	setup(c)
 	go healthCheck(c.CheckInterval, c.UdpVersion)
-	startServer(c)
+
+	log.Fatal(startServer(c))
 }

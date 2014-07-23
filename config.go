@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"log"
 	"os"
 )
 
@@ -14,9 +13,10 @@ type config struct {
 	CheckInterval int
 }
 
-func (c *config) read(env string) {
-	file, _ := os.Open(env + ".json")
-	if err := json.NewDecoder(file).Decode(&c); err != nil {
-		log.Fatal(err)
+func (c *config) read(env string) error {
+	file, err := os.Open(env + ".json")
+	if err != nil {
+		return err
 	}
+	return json.NewDecoder(file).Decode(&c)
 }

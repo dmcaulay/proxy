@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"log"
 	"net"
 
@@ -53,8 +54,11 @@ func readPackets(conn *net.UDPConn) error {
 }
 
 func main() {
+	env := flag.String("e", "development", "the program environment")
+	flag.Parse()
+
 	var c config
-	err := c.read("production")
+	err := c.read(*env)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -52,6 +52,7 @@ func (n *node) Remove() {
 type packet struct {
 	Length int
 	Buffer []byte
+	Conn   *net.UDPConn
 }
 
 func makeAddr(port int, host string) net.UDPAddr {
@@ -79,18 +80,17 @@ func setup(c config) {
 		n := &c.Nodes[i]
 		n.Version = c.UdpVersion
 		n.Addr = makeAddr(n.Port, n.Host)
-		clientMap[n.Name()] = n
 		n.Add()
+		clientMap[n.Name()] = n
 	}
 }
 
 func startServer(c config) {
-	udpConn, err := makeConn(c.UdpVersion, c.Port, c.Host)
-	defer udpConn.Close()
+	conn, err := makeConn(c.UdpVersion, c.Port, c.Host)
+	defer conn.Close()
 	if err != nil {
 		log.Fatal(err)
 	}
-	conn = udpConn
 
 	// read packets
 	for {
@@ -99,7 +99,7 @@ func startServer(c config) {
 		if err != nil {
 			log.Fatal(err)
 		}
-		go handlePacket(packet{Length: n, Buffer: b})
+		go handlePacket(packet{Length: n, Buffer: b, Conn: conn})
 	}
 }
 
@@ -138,7 +138,7 @@ func handlePacket(p packet) {
 		}
 
 		// write to the statsd server
-		_, err = conn.WriteToUDP(line, &n.Addr)
+		_, err = p.Conn.WriteToUDP(line, &n.Addr)
 		if err != nil {
 			n.Remove()
 			continue

@@ -7,7 +7,7 @@ import (
 )
 
 var serverMap map[string]*net.UDPConn = make(map[string]*net.UDPConn)
-var c config = readConfig()
+var c config
 var initialized bool = false
 
 func setup_test() {
@@ -15,6 +15,7 @@ func setup_test() {
 		return
 	}
 	initialized = true
+	readConfig("test", &c)
 	setup(c)
 	makeServers()
 	go startServer(c)

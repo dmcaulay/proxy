@@ -63,13 +63,11 @@ func makeConn(version string, port int, host string) (*net.UDPConn, error) {
 	return net.ListenUDP(version, &addr)
 }
 
-func readConfig() config {
-	file, _ := os.Open("config.json")
-	var c config
-	if err := json.NewDecoder(file).Decode(&c); err != nil {
+func readConfig(env string, c interface{}) {
+	file, _ := os.Open(env + ".json")
+	if err := json.NewDecoder(file).Decode(c); err != nil {
 		log.Fatal(err)
 	}
-	return c
 }
 
 func setup(c config) {
@@ -151,12 +149,12 @@ func handlePacket(p packet) {
 	}
 }
 
-func healthCheck(interval int) {
+func healthCheck(interval int, version string) {
 	healthMessage := []byte("health\r\n")
 	up := []byte("up")
 	ticker := time.NewTicker(time.Duration(interval) * time.Millisecond)
 
-	conn, err := makeConn(c.UdpVersion, 0, "0.0.0.0")
+	conn, err := makeConn(version, 0, "0.0.0.0")
 	defer conn.Close()
 	if err != nil {
 		log.Fatal(err)
@@ -190,8 +188,9 @@ func healthCheck(interval int) {
 }
 
 func main() {
-	c := readConfig()
+	var c config
+	readConfig("production", &c)
 	setup(c)
-	go healthCheck(c.CheckInterval)
+	go healthCheck(c.CheckInterval, c.UdpVersion)
 	startServer(c)
 }

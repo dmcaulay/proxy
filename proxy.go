@@ -60,7 +60,7 @@ func main() {
 	}
 
 	setup(c.Nodes)
-	go healthcheck(c.CheckInterval, c.UdpVersion)
+	go healthcheck(c.CheckInterval, c.UdpVersion, c.Nodes)
 
 	log.Fatal(startServer(c.UdpVersion, c.Port, c.Host))
 }

@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func healthcheck(interval int, version string) {
+func healthcheck(interval int, version string, nodes []node) {
 	healthMessage := []byte("health\r\n")
 	up := []byte("up")
 	ticker := time.NewTicker(time.Duration(interval) * time.Millisecond)
@@ -19,7 +19,7 @@ func healthcheck(interval int, version string) {
 
 	for {
 		<-ticker.C
-		for _, n := range clientMap {
+		for _, n := range nodes {
 			// write health message
 			_, err = conn.WriteToUDP(healthMessage, &n.Addr)
 			if err != nil {

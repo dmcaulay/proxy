@@ -19,19 +19,19 @@ func makeConn(version string, port int, host string) (*net.UDPConn, error) {
 	return net.ListenUDP(version, &addr)
 }
 
-func setup(c config) {
+func setup(nodes []node) {
 	// setup clients and hash ring
 	cons.NumberOfReplicas = 1
-	for i := 0; i < len(c.Nodes); i++ {
-		n := &c.Nodes[i]
+	for i := 0; i < len(nodes); i++ {
+		n := &nodes[i]
 		n.Addr = makeAddr(n.Port, n.Host)
 		n.Add()
 		clientMap[n.Name()] = n
 	}
 }
 
-func startServer(c config) error {
-	conn, err := makeConn(c.UdpVersion, c.Port, c.Host)
+func startServer(version string, port int, host string) error {
+	conn, err := makeConn(version, port, host)
 	if err != nil {
 		return err
 	}
@@ -59,8 +59,8 @@ func main() {
 		log.Fatal(err)
 	}
 
-	setup(c)
+	setup(c.Nodes)
 	go healthcheck(c.CheckInterval, c.UdpVersion)
 
-	log.Fatal(startServer(c))
+	log.Fatal(startServer(c.UdpVersion, c.Port, c.Host))
 }

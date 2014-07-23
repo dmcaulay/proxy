@@ -21,9 +21,9 @@ func setup_test() {
 		log.Fatal(err)
 	}
 
-	setup(c)
+	setup(c.Nodes)
 	makeServers()
-	go startServer(c)
+	go startServer(c.UdpVersion, c.Port, c.Host)
 }
 
 func makeServers() {

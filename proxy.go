@@ -156,29 +156,26 @@ func healthCheck(interval int) {
 	up := []byte("up")
 	ticker := time.NewTicker(time.Duration(interval) * time.Millisecond)
 
+	conn, err := makeConn(c.UdpVersion, 0, "0.0.0.0")
+	defer conn.Close()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	for {
 		<-ticker.C
 		for _, n := range clientMap {
-			// connect to statsd admin port
-			conn, err := makeConn(n.Version, n.AdminPort, n.Host)
-			defer conn.Close()
-			if err != nil {
-				n.Remove()
-				continue
-			}
-
 			// write health message
-			_, err = conn.Write(healthMessage)
+			_, err = conn.WriteToUDP(healthMessage, &n.Addr)
 			if err != nil {
 				n.Remove()
 				continue
 			}
 
 			// read response
-			var b []byte
+			b := make([]byte, 1024)
 			_, _, err = conn.ReadFromUDP(b)
 			if err != nil {
-				n.Remove()
 				continue
 			}
 

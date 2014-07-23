@@ -32,6 +32,15 @@ func makeServers(c config) {
 	}
 }
 
+func serverConn(t *testing.T) (net.PacketConn, net.UDPAddr) {
+	conn, err := net.ListenPacket(c.UdpVersion, "127.0.0.1:0")
+	if err != nil {
+		t.Error("should be able to create a connection")
+	}
+	addr := makeAddr(c.Port, c.Host)
+	return conn, addr
+}
+
 func TestConsistent(t *testing.T) {
 	setup_test()
 	name, err := cons.Get("statsd.metric.test")
@@ -52,12 +61,8 @@ func TestConsistent(t *testing.T) {
 
 func TestOneMetric(t *testing.T) {
 	setup_test()
-	conn, err := net.ListenPacket(c.UdpVersion, "127.0.0.1:0")
-	if err != nil {
-		t.Error("should be able to create a connection")
-	}
-	addr := makeAddr(c.Port, c.Host)
-	_, err = conn.WriteTo([]byte("statsd.metric.test:1|c"), &addr)
+	conn, addr := serverConn(t)
+	_, err := conn.WriteTo([]byte("statsd.metric.test:1|c"), &addr)
 	if err != nil {
 		t.Error("conn Write should not return an error")
 	}
@@ -67,12 +72,8 @@ func TestOneMetric(t *testing.T) {
 
 func TestMultipleMetrics(t *testing.T) {
 	setup_test()
-	conn, err := net.ListenPacket(c.UdpVersion, "127.0.0.1:0")
-	if err != nil {
-		t.Error("should be able to create a connection")
-	}
-	addr := makeAddr(c.Port, c.Host)
-	_, err = conn.WriteTo([]byte("statsd.metric.test:1|c\nstatsd.metric.name:2|g"), &addr)
+	conn, addr := serverConn(t)
+	_, err := conn.WriteTo([]byte("statsd.metric.test:1|c\nstatsd.metric.name:2|g"), &addr)
 	if err != nil {
 		t.Error("conn Write should not return an error")
 	}

@@ -3,7 +3,6 @@ package main
 import (
 	"log"
 	"net"
-	"runtime"
 	"testing"
 )
 
@@ -19,7 +18,6 @@ func setup_test() {
 	setup(c)
 	go startServer(c)
 	makeServers(c)
-	runtime.Gosched()
 }
 
 func makeServers(c config) {

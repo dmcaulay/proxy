@@ -29,8 +29,10 @@ func healthcheck(interval int, version string) {
 
 			// read response
 			b := make([]byte, 1024)
+			conn.SetReadDeadline(time.Now().Add(time.Duration(100) * time.Millisecond))
 			_, _, err = conn.ReadFromUDP(b)
 			if err != nil {
+				n.Remove()
 				continue
 			}
 

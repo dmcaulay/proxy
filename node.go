@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net"
 )
 
@@ -21,9 +22,11 @@ func (n *node) Name() string {
 }
 
 func (n *node) Add() {
+	log.Println("adding node", n.Name())
 	cons.Add(n.Name())
 }
 
 func (n *node) Remove() {
+	log.Println("removing node", n.Name())
 	cons.Remove(n.Name())
 }

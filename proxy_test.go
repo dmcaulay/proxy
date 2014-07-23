@@ -14,8 +14,13 @@ func setup_test() {
 	if initialized {
 		return
 	}
+
 	initialized = true
-	c.read("test")
+	err := c.read("test")
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	setup(c)
 	makeServers()
 	go startServer(c)

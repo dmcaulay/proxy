@@ -53,6 +53,7 @@ func readPackets(conn *net.UDPConn) error {
 		p := packet{Length: n, Buffer: b}
 		go p.handle(conn)
 	}
+	return nil
 }
 
 func main() {

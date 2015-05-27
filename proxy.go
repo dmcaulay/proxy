@@ -6,7 +6,7 @@ import (
 	"net"
 	"runtime"
 
-	"github.com/stathat/consistent"
+	"stathat.com/c/consistent"
 )
 
 var clientMap map[string]*node = make(map[string]*node)

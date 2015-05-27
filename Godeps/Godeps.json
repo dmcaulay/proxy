@@ -1,0 +1,10 @@
+{
+	"ImportPath": "github.com/dmcaulay/proxy",
+	"GoVersion": "go1.4.2",
+	"Deps": [
+		{
+			"ImportPath": "stathat.com/c/consistent",
+			"Rev": "748f01b59d1b2218efe39513039e9ee31266d7c7"
+		}
+	]
+}

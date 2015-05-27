@@ -57,8 +57,8 @@ func TestSetup(t *testing.T) {
 	if err != nil {
 		t.Error("cons should not return an error", err)
 	}
-	if name != "127.0.0.1:8131" {
-		t.Error("expected name to be 127.0.0.1:8131, but it was", name)
+	if name != "127.0.0.1:8127" {
+		t.Error("expected name to be 127.0.0.1:8127, but it was", name)
 	}
 }
 
@@ -82,7 +82,7 @@ func TestMultipleMetrics(t *testing.T) {
 	}
 
 	readMetric("127.0.0.1:8129", "statsd.metric.test:1|c", t)
-	readMetric("127.0.0.1:8131", "statsd.metric.name:2|g", t)
+	readMetric("127.0.0.1:8127", "statsd.metric.name:2|g", t)
 }
 
 func readMetric(server string, metric string, t *testing.T) {

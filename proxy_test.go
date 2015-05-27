@@ -10,7 +10,7 @@ var serverMap map[string]*net.UDPConn = make(map[string]*net.UDPConn)
 var c config
 var initialized bool = false
 
-func setup_test(t *testing.T) {
+func setupTest(t *testing.T) {
 	if initialized {
 		return
 	}
@@ -46,7 +46,7 @@ func newConn(t *testing.T) (net.PacketConn, net.UDPAddr) {
 }
 
 func TestSetup(t *testing.T) {
-	setup_test(t)
+	setupTest(t)
 	name, err := cons.Get("statsd.metric.test")
 	if err != nil {
 		t.Error("cons should not return an error", err)
@@ -64,7 +64,7 @@ func TestSetup(t *testing.T) {
 }
 
 func TestOneMetric(t *testing.T) {
-	setup_test(t)
+	setupTest(t)
 	conn, addr := newConn(t)
 	_, err := conn.WriteTo([]byte("statsd.metric.test:1|c"), &addr)
 	if err != nil {
@@ -75,7 +75,7 @@ func TestOneMetric(t *testing.T) {
 }
 
 func TestMultipleMetrics(t *testing.T) {
-	setup_test(t)
+	setupTest(t)
 	conn, addr := newConn(t)
 	_, err := conn.WriteTo([]byte("statsd.metric.test:1|c\nstatsd.metric.name:2|g"), &addr)
 	if err != nil {

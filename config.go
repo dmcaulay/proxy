@@ -6,11 +6,10 @@ import (
 )
 
 type config struct {
-	Nodes         []node
-	Host          string
-	Port          int
-	UdpVersion    string
-	CheckInterval int
+	Nodes      []node
+	Host       string
+	Port       int
+	UdpVersion string
 }
 
 func (c *config) read(env string) error {

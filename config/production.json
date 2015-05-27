@@ -6,6 +6,5 @@
   ],
   "UdpVersion": "udp4",
   "Host":  "0.0.0.0",
-  "Port": 8125,
-  "CheckInterval": 1000
+  "Port": 8125
 }

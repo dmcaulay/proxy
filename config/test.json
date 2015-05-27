@@ -1,8 +1,8 @@
 {
   "Nodes": [
-    {"Host": "127.0.0.1", "Port": 8127, "Adminport": 8128},
-    {"Host": "127.0.0.1", "Port": 8129, "Adminport": 8130},
-    {"Host": "127.0.0.1", "Port": 8131, "Adminport": 8132}
+    {"Host": "127.0.0.1", "Port": 8127},
+    {"Host": "127.0.0.1", "Port": 8129},
+    {"Host": "127.0.0.1", "Port": 8131}
   ],
   "UdpVersion": "udp4",
   "Host":  "0.0.0.0",

@@ -7,11 +7,10 @@ import (
 )
 
 type node struct {
-	Host      string
-	Port      int
-	AdminPort int
-	Addr      net.UDPAddr
-	name      string
+	Host string
+	Port int
+	Addr net.UDPAddr
+	name string
 }
 
 func (n *node) Name() string {
